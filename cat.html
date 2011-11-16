@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>semcat</title>
+<meta charset="utf-8">
+	
+	<style>
+	html {
+	  font-family: sans-serif;
+	}
+	h2 { 
+	  padding: .2em; 
+	  margin: 0; 
+	}
+	#elements { 
+	  float:left; 
+	  width: 500px; 
+	  margin-left: 2em; 
+	}
+	#elements li { 
+    cursor: move;
+	}
+	#record { 
+	  width: 500px; 
+	  float: left; 
+	}
+	#uniqueidbox {
+    padding: 1em 1em 0 1em; 	  
+	}
+	#record ul { 
+	  margin: 0; 
+	  padding: 1em 1em 1em 1em; 
+	}
+	.elements { 
+	  list-style-type: none; 
+	  margin: 0; 
+	  padding: 0; 
+	}
+	.elements li { 
+	  margin: 0 3px 3px 3px; 
+	  padding: 0.6em; 
+	  height: 18px; 
+	  background-color: silver;
+	  cursor: move;
+	}
+	#previewbox { 
+	  clear: both;
+	}
+	#preview {
+	  width: 1000px; 
+	  border: 1px solid black;
+	  font-family: monospace;
+	}
+	</style>
+	<link rel="stylesheet" href="file:///home/magnus/scripts/semcat/jquery/css/smoothness/jquery-ui-1.8.16.custom.css" type="text/css" media="all" />
+  
+  <script src="file:///home/magnus/scripts/semcat/jquery/js/jquery-1.6.2.min.js"></script>
+  <script src="file:///home/magnus/scripts/semcat/jquery/js/jquery-ui-1.8.16.custom.min.js"></script>
+	<script>
+	$(function() {
+		$( "#catalog" ).accordion({
+      autoHeight: false, 
+      collapsible: true,
+		});
+		$( "#catalog li" ).draggable({
+			appendTo: "body",
+			helper: "clone"
+		});
+		$( "#record ul" ).droppable({
+			activeClass: "ui-state-default",
+			hoverClass: "ui-state-hover",
+			accept: ":not(.ui-sortable-helper)",
+			drop: function( event, ui ) {
+				// $( this ).find( ".placeholder" ).remove();
+				$( "<li></li>" ).append( '<span class="predicate">' + ui.draggable.text() + '</span>' ).append( ' <input type="text" class="object" />' ).appendTo( this );
+			}
+		}).sortable({
+			items: "li:not(.placeholder)",
+			sort: function() {
+				// gets added unintentionally by droppable interacting with sortable
+				// using connectWithSortable fixes this, but doesn't allow you to customize active/hoverClass options
+				$( this ).removeClass( "ui-state-default" );
+			}
+		});
+		$("#uniqueid").val(uuidGenerator());
+		$( "input:button", ".demo" ).button();
+		$("#generate").click(function () {generateRDF();});
+	});
+	
+	function generateRDF() {
+	
+	  var intro = "";
+	  var triples = "";
+	  var foundprefixes = new Array();
+	  
+	  var prefixes = new Array();
+	  prefixes['dcterms'] = 'http://purl.org/dc/elements/1.1/';
+    prefixes['bibo']    = 'http://purl.org/ontology/bibo/';
+    prefixes['rdf']     = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+    prefixes['foaf']    = 'http://xmlns.com/foaf/0.1/';
+    prefixes['prism']   = 'http://prismstandard.org/namespaces/1.2/basic/';
+    prefixes['event']   = 'http://purl.org/NET/c4dm/event.owl#';
+	
+	  // Empty preview area
+	  $("#preview").empty();
+	
+	  // Walk through the record's inputs and build triples
+	  $("#record li").each(function () {
+	    var s = $("#uniqueid").val();
+	    var p = $(this).children(".predicate").text();
+	    var o = $(this).children(".object").val();
+	    if (o != "") {
+	      if (isNaN(o)) {
+				  if (o.match(/http/i)) {
+				    o  = "<" + o + ">";
+				  } else {
+				    o = "\"" + o + "\"";
+				  }
+			  } else {
+				  if (o.match(/^([0-9]*|\d*\.\d{1}?\d*)$/)) {
+					  o = "\"" + o + "\"";
+				  } else {
+					  o = "\"" + o + "\"^^xsd:integer";
+				  }
+			  }
+	      var triple = ":" + s + " " + p + " " + o + " .\n";
+	      triples += triple;
+	      // Collect the unique prefixes
+	      var pieces = p.split(":");
+	      foundprefixes[pieces[0]] = 1;
+	    }
+	  });
+	  
+	  // Build the intro
+	  intro += "@prefix : <http://example.org/> .\n";
+	  for (var prefix in foundprefixes) {
+	    intro += "@prefix " + prefix + ": <" + prefixes[prefix] + "> .\n";
+    }
+	  
+	  $("#preview").val(intro + "\n" + triples);
+	
+	}
+	
+	function uuidGenerator() {
+    var S4 = function() {
+       return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+    };
+    return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+  }
+	</script>
+
+</head>
+	
+<body>
+
+<div class="demo">
+
+<h1>Cataloguing</h1>
+
+<p>To build a record: Drag elements from the vocabularies on the right to the record on the left.</p>
+
+<div id="record">
+	<h2 class="ui-widget-header">Record</h2>
+	<div class="ui-widget-content">
+    <div id="uniqueidbox"><label labelfor="uniqueid">ID: <input class="auto disabled main" name="uniqueid" id="uniqueid" type="text" disabled /></label></div>
+		<ul class="elements">
+			<li><span class="predicate">dcterms:title</span> <input class="object" type="text" /></li>
+		</ul>
+	</div>
+	<input type="button" id="generate" value="Generate preview"/>
+</div>
+	
+<div id="elements">
+	<h2 class="ui-widget-header">Elements</h2>	
+	<div id="catalog">
+		<h3><a href="#">dcterms</a></h3>
+		<div>
+			<ul class="elements">
+				<li>dcterms:abstract</li>
+				<li>dcterms:accessRights</li>
+				<li>dcterms:accrualMethod</li>
+				<li>dcterms:creator</li>
+			</ul>
+		</div>
+		<h3><a href="#">bibo Object Properties</a></h3>
+		<div>
+			<ul class="elements">
+        <li>bibo:affirmedBy</li>
+        <li>bibo:annotates</li>
+        <li>bibo:authorList</li>
+        <li>bibo:citedBy</li>
+        <li>bibo:cites</li>
+        <li>bibo:contributorList</li>
+        <li>bibo:court</li>
+        <li>bibo:degree</li>
+        <li>bibo:director</li>
+        <li>bibo:distributor</li>
+        <li>bibo:editor</li>
+        <li>bibo:editorList</li>
+        <li>bibo:interviewee</li>
+        <li>bibo:interviewer</li>
+        <li>bibo:issuer</li>
+        <li>bibo:organizer</li>
+        <li>bibo:owner</li>
+        <li>bibo:performer</li>
+        <li>bibo:presentedAt</li>
+        <li>bibo:presents</li>
+        <li>bibo:producer</li>
+        <li>bibo:recipient</li>
+        <li>bibo:reproducedIn</li>
+        <li>bibo:reversedBy</li>
+        <li>bibo:reviewOf</li>
+        <li>bibo:status</li>
+        <li>bibo:subsequentLegalDecision</li>
+        <li>bibo:transcriptOf</li>
+        <li>bibo:translationOf</li>
+        <li>bibo:translator</li>
+        <li>dcterms:contributor</li>
+        <li>dcterms:format</li>
+        <li>dcterms:hasPart</li>
+        <li>dcterms:isPartOf</li>
+        <li>dcterms:isReferencedBy</li>
+        <li>dcterms:isVersionOf</li>
+        <li>dcterms:language</li>
+        <li>dcterms:publisher</li>
+        <li>dcterms:relation</li>
+        <li>dcterms:rights</li>
+        <li>dcterms:subject</li>
+        <li>dcterms:title</li>
+        <li>event:agent</li>
+        <li>event:place</li>
+        <li>event:produced_in</li>
+        <li>event:product</li>
+        <li>event:sub_event</li>
+        <li>event:time</li>
+        <li>foaf:based_near</li>
+        <li>foaf:depiction</li>
+        <li>foaf:homepage</li>
+        <li>rdf:value</li>
+			</ul>
+		</div>
+		<h3><a href="#">bibo Data Properties</a></h3>
+		<div>
+			<ul class="elements">
+        <li>bibo:abstract</li>
+        <li>bibo:argued</li>
+        <li>bibo:asin</li>
+        <li>bibo:chapter</li>
+        <li>bibo:coden</li>
+        <li>bibo:content</li>
+        <li>bibo:doi</li>
+        <li>bibo:eanucc13</li>
+        <li>bibo:edition</li>
+        <li>bibo:eissn</li>
+        <li>bibo:gtin14</li>
+        <li>bibo:handle</li>
+        <li>bibo:identifier</li>
+        <li>bibo:isbn</li>
+        <li>bibo:isbn10</li>
+        <li>bibo:isbn13</li>
+        <li>bibo:issn</li>
+        <li>bibo:issue</li>
+        <li>bibo:lccn</li>
+        <li>bibo:locator</li>
+        <li>bibo:number</li>
+        <li>bibo:numPages</li>
+        <li>bibo:numVolumes</li>
+        <li>bibo:oclcnum</li>
+        <li>bibo:pageEnd</li>
+        <li>bibo:pages</li>
+        <li>bibo:pageStart</li>
+        <li>bibo:pmid</li>
+        <li>bibo:prefixName</li>
+        <li>bibo:section</li>
+        <li>bibo:shortDescription</li>
+        <li>bibo:shortTitle</li>
+        <li>bibo:sici</li>
+        <li>bibo:suffixName</li>
+        <li>bibo:upc</li>
+        <li>bibo:uri</li>
+        <li>bibo:volume</li>
+        <li>dcterms:created</li>
+        <li>dcterms:date</li>
+        <li>dcterms:description</li>
+        <li>dcterms:issued</li>
+        <li>foaf:family_name</li>
+        <li>foaf:givenname</li>
+        <li>foaf:name</li>
+        <li>localityName ??</li>
+        <li>prism:doi</li>
+        <li>prism:edition</li>
+        <li>prism:eIssn</li>
+        <li>prism:endingPage</li>
+        <li>prism:isbn</li>
+        <li>prism:issn</li>
+        <li>prism:number</li>
+        <li>prism:volume</li>
+        <li>prism:volumestartingPage</li>
+			</ul>
+		</div>
+		<h3><a href="#">foaf</a></h3>
+		<div>
+			<ul class="elements">
+				<li>foaf:depicts</li>
+				<li>foaf:homepage</li>
+				<li>foaf:weblog</li>
+			</ul>
+		</div>
+	</div>
+</div>
+
+<div id="previewbox">
+<h2>Preview</h2>
+<textarea id="preview" rows="30"></textarea>
+</div>
+
+</div><!-- End demo -->
+
+</body>
+</html>
