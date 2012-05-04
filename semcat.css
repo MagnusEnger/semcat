@@ -1,0 +1,46 @@
+html {
+  font-family: sans-serif;
+}
+h2 {
+  padding: .2em;
+  margin: 0;
+}
+#elements {
+  float:left;
+  width: 500px;
+  margin-left: 2em;
+}
+#elements li {
+  cursor: move;
+}
+#record {
+  width: 500px;
+  float: left;
+}
+#uniqueidbox {
+  padding: 1em 1em 0 1em;
+}
+#record ul {
+  margin: 0;
+  padding: 1em 1em 1em 1em;
+}
+.elements {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.elements li {
+  margin: 0 3px 3px 3px;
+  padding: 0.6em;
+  height: 18px;
+  background-color: silver;
+  cursor: move;
+}
+#previewbox {
+  clear: both;
+}
+#preview {
+  width: 1000px;
+  border: 1px solid black;
+  font-family: monospace;
+}
